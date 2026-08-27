@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Point Plotter</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --border: #2d3a4f;
+      --text: #e7ecf3;
+      --muted: #8b9bb4;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --point: #22d3ee;
+      --axis: #64748b;
+      --grid: #1e293b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem;
+      gap: 1.25rem;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .app {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      justify-content: center;
+      max-width: 1100px;
+      width: 100%;
+    }
+
+    .canvas-wrap {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    canvas {
+      display: block;
+      border-radius: 8px;
+      cursor: crosshair;
+      background: #0c1220;
+    }
+
+    .controls {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      width: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .controls h2 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    label {
+      font-size: 0.85rem;
+      color: var(--muted);
+      min-width: 1.2rem;
+    }
+
+    input[type="number"] {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.55rem 0.7rem;
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input[type="number"]:focus {
+      border-color: var(--accent);
+    }
+
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.6rem 1rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    button:hover {
+      background: var(--accent-hover);
+    }
+
+    button.secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    button.secondary:hover {
+      background: var(--border);
+      color: var(--text);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn-row button {
+      flex: 1;
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .points-list {
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+      background: var(--bg);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      padding: 0.5rem;
+    }
+
+    .points-list:empty::after {
+      content: "No points yet";
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .point-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.35rem 0.4rem;
+      border-radius: 4px;
+    }
+
+    .point-item:hover {
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    .point-item button {
+      background: transparent;
+      border: none;
+      color: #f87171;
+      padding: 0 0.3rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .point-item button:hover {
+      color: #ef4444;
+    }
+
+    .scale-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .scale-row input {
+      width: 70px;
+    }
+
+    footer {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Point Plotter</h1>
+
+  <div class="app">
+    <div class="canvas-wrap">
+      <canvas id="graph" width="640" height="480"></canvas>
+    </div>
+
+    <div class="controls">
+      <h2>Add Point</h2>
+      <div class="row">
+        <label for="x">x</label>
+        <input type="number" id="x" step="any" placeholder="0" />
+      </div>
+      <div class="row">
+        <label for="y">y</label>
+        <input type="number" id="y" step="any" placeholder="0" />
+      </div>
+      <div class="btn-row">
+        <button id="addBtn">Add</button>
+        <button id="clearBtn" class="secondary">Clear all</button>
+      </div>
+
+      <p class="hint">Click anywhere on the graph to place a point. Use the inputs for exact coordinates.</p>
+
+      <h2>View range</h2>
+      <div class="scale-row">
+        <label>±</label>
+        <input type="number" id="range" value="10" min="1" step="1" />
+        <span style="color: var(--muted); font-size: 0.85rem;">units</span>
+      </div>
+
+      <h2>Points <span id="count">(0)</span></h2>
+      <div class="points-list" id="pointsList"></div>
+    </div>
+  </div>
+
+  <footer>Pure HTML · Canvas · No external libraries</footer>
+
+  <script>
+    const canvas = document.getElementById("graph");
+    const ctx = canvas.getContext("2d");
+    const xInput = document.getElementById("x");
+    const yInput = document.getElementById("y");
+    const rangeInput = document.getElementById("range");
+    const pointsList = document.getElementById("pointsList");
+    const countEl = document.getElementById("count");
+
+    let points = [];
+    let range = 10; // from -range to +range on both axes
+
+    function toCanvas(x, y) {
+      const w = canvas.width;
+      const h = canvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      const scale = Math.min(w, h) / (2 * range);
+      return {
+        px: cx + x * scale,
+        py: cy - y * scale
+      };
+    }
+
+    function fromCanvas(px, py) {
+      const w = canvas.width;
+      const h = canvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      const scale = Math.min(w, h) / (2 * range);
+      return {
+        x: (px - cx) / scale,
+        y: (cy - py) / scale
+      };
+    }
+
+    function drawGrid() {
+      const w = canvas.width;
+      const h = canvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      const scale = Math.min(w, h) / (2 * range);
+
+      ctx.clearRect(0, 0, w, h);
+
+      // background
+      ctx.fillStyle = "#0c1220";
+      ctx.fillRect(0, 0, w, h);
+
+      // grid lines
+      ctx.strokeStyle = "#1e293b";
+      ctx.lineWidth = 1;
+
+      const step = range <= 5 ? 0.5 : range <= 20 ? 1 : Math.ceil(range / 10);
+      for (let v = -range; v <= range; v += step) {
+        if (Math.abs(v) < 1e-9) continue;
+        // vertical
+        const { px } = toCanvas(v, 0);
+        ctx.beginPath();
+        ctx.moveTo(px, 0);
+        ctx.lineTo(px, h);
+        ctx.stroke();
+        // horizontal
+        const { py } = toCanvas(0, v);
+        ctx.beginPath();
+        ctx.moveTo(0, py);
+        ctx.lineTo(w, py);
+        ctx.stroke();
+      }
+
+      // axes
+      ctx.strokeStyle = "#64748b";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, cy);
+      ctx.lineTo(w, cy);
+      ctx.moveTo(cx, 0);
+      ctx.lineTo(cx, h);
+      ctx.stroke();
+
+      // arrow heads
+      ctx.fillStyle = "#64748b";
+      // x-axis arrows
+      ctx.beginPath();
+      ctx.moveTo(w - 8, cy - 5);
+      ctx.lineTo(w, cy);
+      ctx.lineTo(w - 8, cy + 5);
+      ctx.fill();
+      // y-axis arrows
+      ctx.beginPath();
+      ctx.moveTo(cx - 5, 8);
+      ctx.lineTo(cx, 0);
+      ctx.lineTo(cx + 5, 8);
+      ctx.fill();
+
+      // labels
+      ctx.fillStyle = "#8b9bb4";
+      ctx.font = "12px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("x", w - 14, cy - 10);
+      ctx.textAlign = "left";
+      ctx.fillText("y", cx + 8, 14);
+
+      // tick labels
+      ctx.font = "11px system-ui, sans-serif";
+      ctx.fillStyle = "#64748b";
+      for (let v = -range; v <= range; v += step) {
+        if (Math.abs(v) < 1e-9) continue;
+        const { px, py } = toCanvas(v, 0);
+        ctx.textAlign = "center";
+        ctx.fillText(String(v), px, cy + 16);
+        const { px: px2, py: py2 } = toCanvas(0, v);
+        ctx.textAlign = "right";
+        ctx.fillText(String(v), cx - 8, py2 + 4);
+      }
+      // origin
+      ctx.textAlign = "right";
+      ctx.fillText("0", cx - 8, cy + 16);
+    }
+
+    function drawPoints() {
+      for (const p of points) {
+        const { px, py } = toCanvas(p.x, p.y);
+        // glow
+        ctx.beginPath();
+        ctx.arc(px, py, 8, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(34, 211, 238, 0.25)";
+        ctx.fill();
+        // point
+        ctx.beginPath();
+        ctx.arc(px, py, 5, 0, Math.PI * 2);
+        ctx.fillStyle = "#22d3ee";
+        ctx.fill();
+        ctx.strokeStyle = "#0c1220";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    }
+
+    function render() {
+      range = Math.max(1, Number(rangeInput.value) || 10);
+      drawGrid();
+      drawPoints();
+      updateList();
+    }
+
+    function updateList() {
+      pointsList.innerHTML = "";
+      countEl.textContent = `(${points.length})`;
+      points.forEach((p, i) => {
+        const div = document.createElement("div");
+        div.className = "point-item";
+        const xStr = Number.isInteger(p.x) ? p.x : p.x.toFixed(2);
+        const yStr = Number.isInteger(p.y) ? p.y : p.y.toFixed(2);
+        div.innerHTML = `<span>(${xStr}, ${yStr})</span>`;
+        const btn = document.createElement("button");
+        btn.textContent = "×";
+        btn.title = "Remove";
+        btn.onclick = () => {
+          points.splice(i, 1);
+          render();
+        };
+        div.appendChild(btn);
+        pointsList.appendChild(div);
+      });
+    }
+
+    function addPoint(x, y) {
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+      // avoid exact duplicates
+      if (points.some(p => Math.abs(p.x - x) < 1e-9 && Math.abs(p.y - y) < 1e-9)) return;
+      points.push({ x, y });
+      render();
+    }
+
+    document.getElementById("addBtn").onclick = () => {
+      const x = parseFloat(xInput.value);
+      const y = parseFloat(yInput.value);
+      if (Number.isFinite(x) && Number.isFinite(y)) {
+        addPoint(x, y);
+        xInput.value = "";
+        yInput.value = "";
+        xInput.focus();
+      }
+    };
+
+    document.getElementById("clearBtn").onclick = () => {
+      points = [];
+      render();
+    };
+
+    rangeInput.addEventListener("change", render);
+    rangeInput.addEventListener("input", render);
+
+    // click to add
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const px = (e.clientX - rect.left) * scaleX;
+      const py = (e.clientY - rect.top) * scaleY;
+      const { x, y } = fromCanvas(px, py);
+      // round to 2 decimals for nicer values
+      addPoint(Math.round(x * 100) / 100, Math.round(y * 100) / 100);
+    });
+
+    // enter key support
+    [xInput, yInput].forEach(inp => {
+      inp.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") document.getElementById("addBtn").click();
+      });
+    });
+
+    // initial draw
+    render();
+  </script>
+</body>
+</html>
