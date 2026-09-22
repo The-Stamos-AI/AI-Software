@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#0b1220" />
+<title>Break Watch · Ultra 2</title>
+<style>
+  /* Galaxy Watch Ultra 2 — round 1.52" · 498×498 */
+  :root{
+    --bg:#0b1220; --panel:#121a2b; --panel2:#1a2438; --line:#2a3650;
+    --text:#eef3ff; --muted:#9aa8c7; --accent:#4f8cff; --good:#20c997; --bad:#ef4444;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{
+    margin:0;padding:0;height:100%;width:100%;
+    background:#000;color:var(--text);
+    font-family:system-ui,-apple-system,sans-serif;
+    overflow:hidden;touch-action:manipulation;
+  }
+  body{display:flex;align-items:center;justify-content:center}
+  /* Circular safe area for round Ultra 2 face */
+  .app{
+    width:min(100vw,100vh);
+    height:min(100vw,100vh);
+    max-width:498px;max-height:498px;
+    background:var(--bg);
+    border-radius:50%;
+    display:flex;flex-direction:column;
+    /* Inset from round edge so corners aren’t clipped */
+    padding:16% 15% 17%;
+    overflow:hidden;
+  }
+  .top{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    flex-shrink:0;margin-bottom:3px;min-height:18px;
+  }
+  .title{font-size:10px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+  .out-badge{
+    min-width:20px;height:20px;border-radius:999px;
+    display:inline-flex;align-items:center;justify-content:center;
+    font-size:10px;font-weight:900;background:var(--panel2);border:1px solid var(--line);
+  }
+  .out-badge.has{background:rgba(239,68,68,.35);border-color:var(--bad);color:#fecaca}
+  .tabs{
+    display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;
+    flex-shrink:0;margin-bottom:4px;
+  }
+  .tabs button{
+    border:1px solid var(--line);background:var(--panel);color:var(--muted);
+    border-radius:999px;padding:0;font-size:10px;font-weight:800;height:26px;
+  }
+  .tabs button.active{background:var(--accent);color:#fff;border-color:transparent}
+  .panel{
+    flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;
+    display:none;scrollbar-width:none;
+  }
+  .panel::-webkit-scrollbar{display:none}
+  .panel.active{display:block}
+  .btn{
+    border:0;border-radius:999px;padding:6px 8px;font-weight:900;font-size:11px;
+    background:var(--accent);color:#fff;min-height:34px;width:100%;
+  }
+  .btn.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+  .btn.good{background:var(--good);color:#042}
+  .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line);min-height:30px;font-size:10px}
+  .row{display:flex;gap:4px;margin-bottom:4px}
+  .row .btn{flex:1}
+  input,select{
+    width:100%;border-radius:999px;border:1px solid var(--line);background:var(--panel2);
+    color:var(--text);padding:6px 10px;font-size:12px;min-height:34px;
+  }
+  label{display:block;font-size:8px;font-weight:800;color:var(--muted);margin:0 0 2px;text-transform:uppercase;letter-spacing:.03em}
+  .student{
+    display:flex;align-items:center;gap:3px;padding:3px 4px;margin-bottom:3px;
+    border-radius:12px;background:var(--panel);border:1px solid var(--line);
+  }
+  .student.is-out{border-color:var(--bad);background:rgba(239,68,68,.14)}
+  .student .name{
+    flex:1;font-size:11px;font-weight:800;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .ico{
+    width:36px;height:36px;min-width:36px;border-radius:10px;border:1px solid #93c5fd;
+    background:#bfdbfe;color:#1e40af;font-size:17px;
+    display:inline-flex;align-items:center;justify-content:center;
+    opacity:.8;padding:0;
+  }
+  .ico.is-on{opacity:1;background:#facc15;border-color:#eab308;color:#713f12}
+  .ico.x{width:24px;min-width:24px;height:24px;font-size:10px;opacity:.4;border-radius:8px}
+  .out-card{
+    padding:5px 7px;margin-bottom:4px;border-radius:12px;background:var(--panel);
+    border:1px solid var(--line);
+    display:grid;grid-template-columns:1fr auto;gap:1px 6px;align-items:center;
+  }
+  .out-card.is-late{border-color:var(--bad);animation:flash 1s infinite}
+  @keyframes flash{0%,100%{background:rgba(239,68,68,.15)}50%{background:rgba(239,68,68,.42)}}
+  .out-card .nm{font-size:11px;font-weight:900;grid-column:1;line-height:1.15}
+  .out-card .meta{font-size:8px;color:var(--muted);grid-column:1}
+  .out-card .timer{
+    font-size:16px;font-weight:900;font-variant-numeric:tabular-nums;
+    grid-column:2;grid-row:1/3;text-align:right;
+  }
+  .out-card .timer.late{color:var(--bad)}
+  .out-card .btn{grid-column:1/-1;min-height:30px;margin-top:2px;font-size:11px}
+  .warn-banner{
+    display:none;position:fixed;inset:0;z-index:999;background:rgba(239,68,68,.95);
+    color:#fff;align-items:center;justify-content:center;flex-direction:column;
+    text-align:center;padding:22%;font-weight:900;border-radius:50%;
+  }
+  .warn-banner.show{display:flex}
+  .warn-banner .big{font-size:15px;margin-bottom:3px}
+  .warn-banner .sub{font-size:11px;opacity:.95;margin-bottom:8px;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .settings-block{margin-bottom:5px}
+  .limits{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+  .toast{
+    position:fixed;left:22%;right:22%;bottom:18%;z-index:800;
+    background:var(--panel2);border:1px solid var(--line);border-radius:999px;
+    padding:5px 8px;font-size:9px;font-weight:800;text-align:center;
+    opacity:0;pointer-events:none;transition:opacity .2s;
+  }
+  .toast.show{opacity:1}
+  .empty{text-align:center;color:var(--muted);font-size:10px;padding:10px 4px;font-weight:700;line-height:1.25}
+  .keep-awake{font-size:7px;color:var(--muted);text-align:center;margin:2px 0 0;line-height:1.2}
+  .keep-awake.on{color:var(--good)}
+  /* Prefer denser layout on ~498px faces */
+  @media (min-width:400px){
+    .app{padding:15% 14% 16%}
+    .ico{width:38px;height:38px;min-width:38px;font-size:18px}
+    .out-card .timer{font-size:18px}
+  }
+</style>
+</head>
+<body>
+<div class="warn-banner" id="warnBanner" role="alert">
+  <div class="big" id="warnTitle">LATE</div>
+  <div class="sub" id="warnSub"></div>
+  <button type="button" class="btn good" onclick="dismissWarn()">OK</button>
+</div>
+
+<div class="app">
+  <div class="top">
+    <div class="title">Breaks</div>
+    <span class="out-badge" id="outBadge">0</span>
+  </div>
+  <div class="tabs">
+    <button type="button" class="active" data-tab="out" onclick="setTab('out')">Out</button>
+    <button type="button" data-tab="names" onclick="setTab('names')">Names</button>
+    <button type="button" data-tab="set" onclick="setTab('set')">Set</button>
+  </div>
+
+  <div class="panel active" id="tab-out">
+    <div id="outList"></div>
+  </div>
+
+  <div class="panel" id="tab-names">
+    <div class="row">
+      <input type="text" id="newName" placeholder="Name" autocomplete="off" />
+      <button type="button" class="btn" style="width:auto;min-width:40px;flex:0;border-radius:12px" onclick="addName()">+</button>
+    </div>
+    <div id="nameList"></div>
+  </div>
+
+  <div class="panel" id="tab-set">
+    <div class="settings-block">
+      <div class="limits">
+        <div>
+          <label>Toilet min</label>
+          <input type="number" id="limToilet" min="1" max="30" value="5" />
+        </div>
+        <div>
+          <label>Drink min</label>
+          <input type="number" id="limDrink" min="1" max="30" value="3" />
+        </div>
+      </div>
+    </div>
+    <div class="settings-block">
+      <label>Sound</label>
+      <select id="soundSel">
+        <option value="beep">Beep</option>
+        <option value="siren">Siren</option>
+        <option value="klaxon">Klaxon</option>
+        <option value="duck">Duck</option>
+      </select>
+    </div>
+    <div class="row">
+      <button type="button" class="btn secondary" onclick="previewSound()">Test</button>
+      <button type="button" class="btn secondary" onclick="enableAlerts()">Alerts</button>
+    </div>
+    <div class="row">
+      <button type="button" class="btn secondary" id="wakeBtn" onclick="toggleWake()">Awake: Off</button>
+    </div>
+    <p class="keep-awake" id="wakeStatus">Keep page open for alarms.</p>
+    <div class="row">
+      <button type="button" class="btn ghost" onclick="clearAllOut()">All BACK</button>
+      <button type="button" class="btn ghost" onclick="if(confirm('Wipe names?')){state.names=[];state.out=[];save();render();toast('Cleared')}">Wipe</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const KEY = 'bw_breaks_v1';
+const state = { names:[], out:[], limToilet:5, limDrink:3, sound:'beep', wake:false };
+let audioCtx=null, wakeLock=null, lastFlash=0;
+
+function load(){try{const r=JSON.parse(localStorage.getItem(KEY)||'null');if(!r)return;
+  if(Array.isArray(r.names))state.names=r.names;if(Array.isArray(r.out))state.out=r.out;
+  if(r.limToilet)state.limToilet=r.limToilet;if(r.limDrink)state.limDrink=r.limDrink;if(r.sound)state.sound=r.sound;
+}catch(_){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({names:state.names,out:state.out,limToilet:state.limToilet,limDrink:state.limDrink,sound:state.sound}))}catch(_){}}
+function toast(m){const el=$('toast');if(!el)return;el.textContent=m;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1400)}
+function setTab(id){document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='tab-'+id))}
+function nowMs(){return Date.now()}
+function uid(){return 'o'+Date.now().toString(36)+Math.random().toString(36).slice(2,5)}
+function minsOut(e){return Math.max(0,Math.floor((nowMs()-e.tOut)/60000))}
+function secsOut(e){return Math.max(0,Math.floor((nowMs()-e.tOut)/1000))}
+function formatTimer(e){const s=secsOut(e);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function isLate(e){return minsOut(e)>=(e.limitMin||5)}
+function limitFor(r){return r==='Drinking'?state.limDrink:state.limToilet}
+function isOut(n){return state.out.some(e=>e.name.toLowerCase()===n.toLowerCase())}
+function getOut(n){return state.out.find(e=>e.name.toLowerCase()===n.toLowerCase())}
+
+function addName(){
+  const n=($('newName')?.value||'').trim();if(!n){toast('Name?');return}
+  if(state.names.some(x=>x.toLowerCase()===n.toLowerCase())){toast('Exists');return}
+  state.names.push(n);state.names.sort((a,b)=>a.localeCompare(b));
+  if($('newName'))$('newName').value='';save();render();toast('+ '+n);
+}
+function removeName(name){if(!confirm('Remove?'))return;state.names=state.names.filter(n=>n!==name);state.out=state.out.filter(e=>e.name!==name);save();render()}
+function markOut(name,reason){
+  if(isOut(name)){markBack(name);return}
+  unlockAudio();
+  state.out.push({id:uid(),name,reason:reason||'Toilet',tOut:nowMs(),limitMin:limitFor(reason||'Toilet'),alerted:false});
+  save();render();toast((reason==='Drinking'?'💧':'🚻')+' '+name);tryKeepAwake();
+}
+function markBack(name){state.out=state.out.filter(x=>x.name!==name);save();render();toast(name+' OK');if(!state.out.some(isLate))dismissWarn(true)}
+function markBackId(id){const e=state.out.find(x=>x.id===id);if(e)markBack(e.name)}
+function clearAllOut(){if(!state.out.length){toast('None');return}if(!confirm('All BACK?'))return;state.out=[];save();render();dismissWarn(true);toast('Clear')}
+
+function unlockAudio(){try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume()}catch(_){}}
+function tone(freq,t0,dur,peak,type){if(!audioCtx)return;const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type||'square';o.frequency.value=freq;g.gain.setValueAtTime(0.0001,t0);g.gain.exponentialRampToValueAtTime(peak||0.4,t0+0.03);g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);o.connect(g);g.connect(audioCtx.destination);o.start(t0);o.stop(t0+dur+0.02)}
+function playSound(kind){unlockAudio();if(!audioCtx)return;const now=audioCtx.currentTime,k=kind||state.sound;
+  if(k==='siren'){for(let i=0;i<3;i++){tone(400,now+i*.45,.4,.45,'sawtooth');tone(900,now+i*.45+.2,.2,.4,'sawtooth')}}
+  else if(k==='klaxon'){for(let i=0;i<4;i++){tone(440,now+i*.3,.12,.5);tone(330,now+i*.3+.12,.12,.48)}}
+  else if(k==='duck'){for(let i=0;i<3;i++){tone(280,now+i*.28,.1,.5,'sawtooth');tone(520,now+i*.28+.07,.1,.42,'square')}}
+  else{tone(920,now,.12,.4);tone(620,now+.14,.12,.38);tone(920,now+.28,.16,.42)}}
+function previewSound(){state.sound=$('soundSel')?.value||state.sound;playSound(state.sound);toast(state.sound)}
+function vibrateHard(){try{if(navigator.vibrate)navigator.vibrate([180,80,180,80,300])}catch(_){}}
+function notifyLate(e){try{if(Notification.permission==='granted')new Notification('LATE · '+e.name,{body:(e.reason==='Drinking'?'Drink':'Toilet')+' · '+minsOut(e)+'m',tag:'late-'+e.id,renotify:true,requireInteraction:true})}catch(_){}}
+async function enableAlerts(){unlockAudio();try{if(Notification&&Notification.permission!=='granted')await Notification.requestPermission()}catch(_){}tryKeepAwake();playSound(state.sound);vibrateHard();toast('Alerts')}
+async function tryKeepAwake(){if(!state.wake)return;try{if('wakeLock' in navigator){if(wakeLock){try{await wakeLock.release()}catch(_){}}wakeLock=await navigator.wakeLock.request('screen');$('wakeBtn').textContent='Awake: On';$('wakeStatus').textContent='Stay-on on.';$('wakeStatus').classList.add('on')}}catch(_){$('wakeStatus').textContent='Awake blocked'}}
+function toggleWake(){state.wake=!state.wake;if(state.wake)tryKeepAwake();else{if(wakeLock){try{wakeLock.release()}catch(_){}wakeLock=null}$('wakeBtn').textContent='Awake: Off';$('wakeStatus').textContent='Keep page open for alarms.';$('wakeStatus').classList.remove('on')}}
+function showWarn(list){const el=$('warnBanner');if(!el)return;$('warnTitle').textContent=list.length===1?'LATE':list.length+' LATE';$('warnSub').textContent=list.map(e=>e.name).join(', ');el.classList.add('show')}
+function dismissWarn(silent){$('warnBanner')?.classList.remove('show');if(!silent){state.out.forEach(e=>{if(isLate(e))e.alerted=true});save()}}
+function checkLates(){const lates=state.out.filter(isLate);lates.forEach(e=>{if(!e.alerted){e.alerted=true;playSound(state.sound);vibrateHard();notifyLate(e);save()}});const now=nowMs();if(lates.length&&now-lastFlash>30000){lastFlash=now;playSound(state.sound);vibrateHard();lates.forEach(notifyLate)}if(lates.length)showWarn(lates);else dismissWarn(true)}
+
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function escAttr(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
+
+function renderOut(){
+  const list=$('outList'),badge=$('outBadge');
+  if(badge){badge.textContent=String(state.out.length);badge.classList.toggle('has',state.out.length>0)}
+  if(!list)return;
+  if(!state.out.length){list.innerHTML='<div class="empty">Nobody out</div>';return}
+  list.innerHTML=state.out.slice().sort((a,b)=>a.tOut-b.tOut).map(e=>{
+    const late=isLate(e),reason=e.reason==='Drinking'?'💧':'🚻';
+    return `<div class="out-card ${late?'is-late':''}">
+      <div class="nm">${esc(e.name)}</div>
+      <div class="meta">${reason} · ${e.limitMin}m${late?' · LATE':''}</div>
+      <div class="timer ${late?'late':''}">${formatTimer(e)}</div>
+      <button type="button" class="btn good" onclick="markBackId('${e.id}')">↩ BACK</button>
+    </div>`}).join('');
+}
+function renderNames(){
+  const list=$('nameList');if(!list)return;
+  if(!state.names.length){list.innerHTML='<div class="empty">Add names</div>';return}
+  list.innerHTML=state.names.map(n=>{
+    const o=getOut(n),t=o&&o.reason==='Toilet',d=o&&o.reason==='Drinking';
+    return `<div class="student ${o?'is-out':''}">
+      <span class="name">${esc(n)}</span>
+      <button type="button" class="ico ${t?'is-on':''}" onclick="markOut('${escAttr(n)}','Toilet')">${t?'↩':'🚻'}</button>
+      <button type="button" class="ico ${d?'is-on':''}" onclick="markOut('${escAttr(n)}','Drinking')">${d?'↩':'💧'}</button>
+      <button type="button" class="ico x" onclick="removeName('${escAttr(n)}')">✕</button>
+    </div>`}).join('');
+}
+function render(){
+  if($('limToilet'))$('limToilet').value=state.limToilet;
+  if($('limDrink'))$('limDrink').value=state.limDrink;
+  if($('soundSel'))$('soundSel').value=state.sound;
+  renderOut();renderNames();
+}
+function bindSettings(){
+  $('limToilet')?.addEventListener('change',()=>{state.limToilet=Math.max(1,Math.min(30,Number($('limToilet').value)||5));state.out.forEach(e=>{if(e.reason==='Toilet')e.limitMin=state.limToilet});save();render()});
+  $('limDrink')?.addEventListener('change',()=>{state.limDrink=Math.max(1,Math.min(30,Number($('limDrink').value)||3));state.out.forEach(e=>{if(e.reason==='Drinking')e.limitMin=state.limDrink});save();render()});
+  $('soundSel')?.addEventListener('change',()=>{state.sound=$('soundSel').value;save()});
+  $('newName')?.addEventListener('keydown',e=>{if(e.key==='Enter')addName()});
+}
+function tick(){checkLates();renderOut()}
+load();bindSettings();render();
+setInterval(tick,1000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){unlockAudio();if(state.wake)tryKeepAwake();tick()}});
+document.addEventListener('pointerdown',()=>unlockAudio(),{once:true});
+</script>
+</body>
+</html>
